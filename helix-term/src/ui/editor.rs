@@ -1389,6 +1389,9 @@ impl Component for EditorView {
             Event::Mouse(event) => self.handle_mouse_event(event, &mut cx),
             Event::IdleTimeout => self.handle_idle_timeout(&mut cx),
             Event::FocusGained => {
+                if context.editor.config().auto_reload {
+                    auto_reload(context)
+                }
                 self.terminal_focused = true;
                 EventResult::Consumed(None)
             }
@@ -1529,5 +1532,23 @@ fn canonicalize_key(key: &mut KeyEvent) {
     } = key
     {
         key.modifiers.remove(KeyModifiers::SHIFT)
+    }
+}
+
+fn auto_reload(context: &mut crate::compositor::Context) {
+    match commands::typed::reload_all_impl(context, true, true) {
+        Ok((n_reloaded, n_dirty_modified)) => {
+            if n_dirty_modified > 0 {
+                context.editor.set_error(format!(
+                    "reloaded {} buffers, but not {} modified buffers",
+                    n_reloaded, n_dirty_modified
+                ))
+            } else {
+                context
+                    .editor
+                    .set_status(format!("reloaded {} buffers", n_reloaded))
+            }
+        }
+        Err(e) => context.editor.set_error(format!("{}", e)),
     }
 }

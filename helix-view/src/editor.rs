@@ -243,6 +243,8 @@ pub struct Config {
     pub auto_format: bool,
     /// Automatic save on focus lost. Defaults to false.
     pub auto_save: bool,
+    /// Automatic reload on focus gained. Defaults to false.
+    pub auto_reload: bool,
     /// Set a global text_width
     pub text_width: usize,
     /// Time in milliseconds since last keypress before idle timers trigger.
@@ -837,6 +839,7 @@ impl Default for Config {
             auto_completion: true,
             auto_format: true,
             auto_save: false,
+            auto_reload: false,
             idle_timeout: Duration::from_millis(250),
             completion_timeout: Duration::from_millis(250),
             preview_completion_insert: true,

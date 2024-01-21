@@ -1487,6 +1487,18 @@ impl Document {
         self.id
     }
 
+    /// If the document modification time is earlier than its file's.
+    pub fn is_dirty(&self) -> bool {
+        if let Some(path) = self.path() {
+            if let Ok(metadata) = std::fs::metadata(path) {
+                if let Ok(mtime) = metadata.modified() {
+                    return self.last_saved_time < mtime;
+                }
+            }
+        }
+        false
+    }
+
     /// If there are unsaved modifications.
     pub fn is_modified(&self) -> bool {
         let history = self.history.take();
