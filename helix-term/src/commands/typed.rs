@@ -1589,10 +1589,26 @@ fn reload(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> anyh
     if event != PromptEvent::Validate {
         return Ok(());
     }
+    reload_impl(cx, false, false)
+}
 
+// Reload the current document from its source file.
+// only_unmodified: reload only if the document is unmodified.
+// only_dirty: reload only if the document content differs from the file content.
+fn reload_impl(
+    cx: &mut compositor::Context,
+    only_unmodified: bool,
+    only_dirty: bool,
+) -> anyhow::Result<()> {
     let scrolloff = cx.editor.config().scrolloff;
     let trust_full = doc_trust_full(cx.editor);
     let (view, doc) = current!(cx.editor);
+    if only_unmodified && doc.is_modified() {
+        return Ok(());
+    }
+    if only_dirty && !doc.is_dirty() {
+        return Ok(());
+    }
     doc.reload(view, &cx.editor.diff_providers, trust_full)
         .map(|_| {
             view.ensure_cursor_in_view(doc, scrolloff);
@@ -1610,7 +1626,14 @@ fn reload_all(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> 
     if event != PromptEvent::Validate {
         return Ok(());
     }
+    reload_all_impl(cx, false, false).map(|_| ())
+}
 
+pub fn reload_all_impl(
+    cx: &mut compositor::Context,
+    only_unmodified: bool,
+    only_dirty: bool,
+) -> anyhow::Result<(u64, u64)> {
     let scrolloff = cx.editor.config().scrolloff;
     let view_id = view!(cx.editor).id;
 
@@ -1619,7 +1642,6 @@ fn reload_all(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> 
         .documents_mut()
         .map(|doc| {
             let mut view_ids: Vec<_> = doc.selections().keys().cloned().collect();
-
             if view_ids.is_empty() {
                 doc.ensure_view_init(view_id);
                 view_ids.push(view_id);
@@ -1629,9 +1651,18 @@ fn reload_all(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> 
         })
         .collect();
 
+    let mut n_reloaded: u64 = 0;
+    let mut n_dirty_modified: u64 = 0; // dirty files that we didn't reload because they are modified
     for (doc_id, view_ids) in docs_view_ids {
         let doc = doc_mut!(cx.editor, &doc_id);
 
+        if only_dirty && !doc.is_dirty() {
+            continue;
+        }
+        if only_unmodified && doc.is_modified() {
+            n_dirty_modified += 1;
+            continue;
+        }
         // Every doc is guaranteed to have at least 1 view at this point.
         let view = view_mut!(cx.editor, view_ids[0]);
 
@@ -1651,6 +1682,7 @@ fn reload_all(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> 
             cx.editor.set_error(format!("{}", error));
             continue;
         }
+        n_reloaded += 1;
 
         if let Some(path) = doc.path().map(ToOwned::to_owned) {
             cx.editor
@@ -1674,7 +1706,7 @@ fn reload_all(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> 
         }
     }
 
-    Ok(())
+    Ok((n_reloaded, n_dirty_modified))
 }
 
 /// Update the [`Document`] if it has been modified.
