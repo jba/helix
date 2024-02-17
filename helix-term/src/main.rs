@@ -116,6 +116,7 @@ FLAGS:
 
     setup_logging(args.verbosity).context("failed to initialize logging")?;
 
+    log::info!("jba build of helix");
     // Before setting the working directory, resolve all the paths in args.files
     for (path, _) in args.files.iter_mut() {
         *path = helix_stdx::path::canonicalize(&path);
