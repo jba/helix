@@ -19,7 +19,7 @@ use helix_core::{
     syntax::{self, HighlightEvent},
     text_annotations::TextAnnotations,
     unicode::width::UnicodeWidthStr,
-    visual_offset_from_block, Change, Position, Range, Selection, Transaction,
+    visual_offset_from_block, Change, Position, Range, Selection, Syntax, Transaction,
 };
 use helix_view::{
     document::{Mode, SavePoint, SCRATCH_BUFFER_NAME},
@@ -530,14 +530,14 @@ impl EditorView {
         // Highlight matching braces
         if let Some(syntax) = doc.syntax() {
             let text = doc.text().slice(..);
-            use helix_core::match_brackets;
             let pos = doc.selection(view.id).primary().cursor(text);
-
-            if let Some(pos) =
-                match_brackets::find_matching_bracket(syntax, doc.text().slice(..), pos)
-            {
-                // ensure col is on screen
-                if let Some(highlight) = theme.find_scope_index_exact("ui.cursor.match") {
+            if let Some((highlight, pos)) = matching_bracket_highlight(syntax, doc, theme, pos) {
+                return vec![(highlight, pos..pos + 1)];
+            }
+            if pos > 0 {
+                if let Some((highlight, pos)) =
+                    matching_bracket_highlight(syntax, doc, theme, pos - 1)
+                {
                     return vec![(highlight, pos..pos + 1)];
                 }
             }
@@ -1032,6 +1032,22 @@ impl EditorView {
     }
 }
 
+fn matching_bracket_highlight(
+    syntax: &Syntax,
+    doc: &Document,
+    theme: &Theme,
+    from_pos: usize,
+) -> Option<(usize, usize)> {
+    use helix_core::match_brackets;
+    if let Some(pos) = match_brackets::find_matching_bracket(syntax, doc.text().slice(..), from_pos)
+    {
+        // ensure col is on screen
+        if let Some(highlight) = theme.find_scope_index_exact("ui.cursor.match") {
+            return Some((highlight, pos));
+        }
+    }
+    Option::None
+}
 impl EditorView {
     fn handle_mouse_event(
         &mut self,
