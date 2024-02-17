@@ -644,8 +644,11 @@ impl EditorView {
         let syntax = doc.syntax()?;
         let highlight = theme.find_highlight_exact("ui.cursor.match")?;
         let text = doc.text().slice(..);
-        let pos = doc.selection(view.id).primary().cursor(text);
-        let pos = helix_core::match_brackets::find_matching_bracket(syntax, text, pos)?;
+        let cursor = doc.selection(view.id).primary().cursor(text);
+        use helix_core::match_brackets::find_matching_bracket;
+        // Match the bracket under the cursor, or failing that, the one just before it.
+        let pos = find_matching_bracket(syntax, text, cursor)
+            .or_else(|| find_matching_bracket(syntax, text, cursor.checked_sub(1)?))?;
         Some(OverlayHighlights::single(highlight, pos..pos + 1))
     }
 
