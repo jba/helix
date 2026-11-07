@@ -1774,7 +1774,7 @@ fn auto_reload(context: &mut crate::compositor::Context) {
                     "reloaded {} buffers, but not {} modified buffers",
                     n_reloaded, n_dirty_modified
                 ))
-            } else {
+            } else if n_reloaded > 0 {
                 context
                     .editor
                     .set_status(format!("reloaded {} buffers", n_reloaded))
