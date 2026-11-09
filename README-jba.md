@@ -13,7 +13,26 @@ on top of upstream `master`:
   so you can confirm which build is running (`hx -v`, then check
   `~/.cache/helix/helix.log`).
 
-## Install
+## Install a prebuilt binary (Linux x86_64)
+
+Download the latest `helix-*-x86_64-linux.tar.xz` from the
+[releases page](https://github.com/jba/helix/releases). It needs glibc 2.39 or
+newer (e.g. Ubuntu 24.04+).
+
+```sh
+V=25.07.1-jba.1
+curl -LO https://github.com/jba/helix/releases/download/$V/helix-$V-x86_64-linux.tar.xz
+tar -xJf helix-$V-x86_64-linux.tar.xz -C ~/.local/share
+ln -sfn ~/.local/share/helix-$V-x86_64-linux/hx ~/.local/bin/hx
+```
+
+`hx` finds its bundled `runtime/` directory (themes, queries, compiled
+grammars) next to the real executable, so keep them together. Then
+`hx --health` should report the runtime and grammars.
+
+Other platforms: build from source as below.
+
+## Install from source
 
 You need a Rust toolchain (via [rustup](https://rustup.rs)) and a C compiler
 (e.g. `build-essential`) for the tree-sitter grammars. The
@@ -82,3 +101,21 @@ For tmux, add `set -g focus-events on` to `~/.tmux.conf`.
 
 The bracket highlighting needs no configuration, but your theme must define
 `ui.cursor.match`, as most themes do.
+
+## Publishing a release (maintainer notes)
+
+Releases are built by hand on Linux x86_64:
+
+```sh
+V=<upstream-version>-jba.<n>
+N=helix-$V-x86_64-linux
+cargo build --release --locked -p helix-term   # also builds runtime/grammars
+mkdir -p /tmp/rel/$N && cp target/release/hx LICENSE README-jba.md /tmp/rel/$N/
+strip /tmp/rel/$N/hx
+rsync -a --exclude grammars/sources runtime /tmp/rel/$N/
+(cd /tmp/rel && tar -cJf $N.tar.xz $N && sha256sum $N.tar.xz > $N.tar.xz.sha256)
+git tag -a $V -m "jba build $V" && git push origin master $V
+gh release create $V --title "Helix $V (jba fork)" /tmp/rel/$N.tar.xz /tmp/rel/$N.tar.xz.sha256
+```
+
+The binary requires a glibc at least as new as the build machine's.
