@@ -20,7 +20,7 @@ Download the latest `helix-*-x86_64-linux.tar.xz` from the
 newer (e.g. Ubuntu 24.04+).
 
 ```sh
-V=25.07.1-jba.1
+V=25.07.1-jba.2
 curl -LO https://github.com/jba/helix/releases/download/$V/helix-$V-x86_64-linux.tar.xz
 tar -xJf helix-$V-x86_64-linux.tar.xz -C ~/.local/share
 ln -sfn ~/.local/share/helix-$V-x86_64-linux/hx ~/.local/bin/hx
@@ -28,7 +28,8 @@ ln -sfn ~/.local/share/helix-$V-x86_64-linux/hx ~/.local/bin/hx
 
 `hx` finds its bundled `runtime/` directory (themes, queries, compiled
 grammars) next to the real executable, so keep them together. Then
-`hx --health` should report the runtime and grammars.
+`hx --health` should report the runtime and grammars. The archive's
+`README-release.md` describes other ways to place the runtime.
 
 Other platforms: build from source as below.
 
@@ -110,7 +111,7 @@ Releases are built by hand on Linux x86_64:
 V=<upstream-version>-jba.<n>
 N=helix-$V-x86_64-linux
 cargo build --release --locked -p helix-term   # also builds runtime/grammars
-mkdir -p /tmp/rel/$N && cp target/release/hx LICENSE README-jba.md /tmp/rel/$N/
+mkdir -p /tmp/rel/$N && cp target/release/hx LICENSE README-release.md /tmp/rel/$N/
 strip /tmp/rel/$N/hx
 rsync -a --exclude grammars/sources runtime /tmp/rel/$N/
 (cd /tmp/rel && tar -cJf $N.tar.xz $N && sha256sum $N.tar.xz > $N.tar.xz.sha256)
